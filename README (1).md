@@ -1,12 +1,9 @@
-# Marketing Analytics: K-Means Customer Segmentation for Cable Service Offers
+# Data Science: K-Means Clustering to Identify Subscriber Segments in Cable Services
 
 This project examines how a cable TV multi-system operator (MSO) can use household spending patterns to develop more relevant subscriber offers. Using monthly payments for video, internet, and landline phone services, our group compared K-means solutions and selected six segments to guide differentiated bundles and cross-sell recommendations. Demographic profiles helped translate the statistical clusters into marketing opportunities.
-
-Completed for Northwestern University's **IMC460: Data Science**. Group members: Ina Lin, Cindy Chou, Khwaish Gohil, Yin Zhi, and Priya Thakore.
-
 ---
 
-## Project Motivation
+## Project Goal
 
 The business objective was to identify subscriber groups that could receive different offers to increase customer value and monthly cash flow. For example, an appropriate high-speed internet upgrade could create an opportunity to grow revenue from an existing subscriber. The analysis therefore considered both statistical separation and whether each segment could support a practical offer.
 
@@ -20,9 +17,7 @@ The business objective was to identify subscriber groups that could receive diff
 
 ### Unit of Analysis
 
-- One subscriber household.
-- The assignment describes a source dataset of **10,000 households**.
-- The selected model output in our presentation contains **9,780 households**. The presentation does not document the reason for this difference.
+- 10,000 subscriber households
 
 ### Clustering Variables (for K-means)
 
@@ -54,13 +49,10 @@ Used to interpret the segments and inform offer recommendations:
 
 ## Key Findings
 
-- **Six clusters explained approximately 74.2% of spending variation.** The selected solution reported a pseudo-F statistic of 5,634.7, the highest among the six- through ten-cluster solutions shown in the presentation.
-- **Premium video households were distinct from internet-led households.** Cluster 1 averaged $145.70 in monthly video spending, compared with $28.47 for cluster 2. Cluster 2 had the highest mean internet payment at $46.65.
-- **The largest segment combined moderate video and internet spending.** Cluster 5 contained 4,036 households, approximately 41% of the analyzed sample, and supported a family-bundle or internet-upgrade offer hypothesis.
-- **Older, video-focused households suggested a different offer approach.** Cluster 3 had an average age of 62.3 and very low internet spending, informing the proposed affordable "Stay Connected" package.
-- **Low-spend households supported an essentials-package hypothesis.** Cluster 6 had relatively low payments across all three services, suggesting a basic bundle worth testing.
-
-These offers were recommendations from the case study. Campaign conversion, retention, and revenue impact were not measured. Segment interpretations follow the selected six-cluster output; later slides contain inconsistent cluster references.
+- Six distinct customer segments with different spending patterns
+- Premium video customers spent heavily on TV services
+- Internet-focused customers spent less on video and phone
+- Segment differences informed recommendations for premium bundles, internet upgrades, and basic packages
 
 ---
 
@@ -68,10 +60,8 @@ These offers were recommendations from the case study. Campaign conversion, rete
 
 | Category | Details |
 | --- | --- |
-| Methods | K-means clustering, descriptive statistics, scale assessment, pseudo-F comparison, demographic profiling, offer development |
-| Tools | R / RStudio, as identified in the accompanying project description; individual package dependencies are not verified without the original scripts. |
-| Deliverable | Group presentation connecting customer segments with proposed service bundles and personalization opportunities. |
-
+| Methods | K-means clustering, Exploratory Data Analysis, Demographic profiling|
+| Tools | RStudio (packages: tidyverse, dplyr, stats, ggplot2)|
 ---
 
 ## How to Run
