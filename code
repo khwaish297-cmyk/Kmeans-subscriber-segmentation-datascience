@@ -1,0 +1,126 @@
+if (any(!is.finite(as.matrix(spending_data)))) stop("Spending contains infinite values.")
+if (any(as.matrix(spending_data) < 0)) stop("Check negative spending values before clustering.")
+
+# 2. Descriptive statistics ---------------------------------------------------
+descriptive_stats <- bind_rows(lapply(spend_vars, function(v) {
+  x <- data[[v]]
+  data.frame(service = v, n = length(x), mean = mean(x), sd = sd(x),
+             min = min(x), median = median(x), max = max(x),
+             zero_pct = 100 * mean(x == 0))
+}))
+print(descriptive_stats)
+save_table(descriptive_stats, "spending_statistics.csv")
+spending_long <- pivot_longer(data[, spend_vars], everything(),
+                             names_to = "service", values_to = "spending")
+save_plot(ggplot(spending_long, aes(spending)) +
+            geom_histogram(bins = 30, fill = "#245C48", color = "white") +
+            facet_wrap(~service, scales = "free") + theme_minimal() +
+            labs(title = "Monthly service spending", x = "Monthly payment ($)", y = "Households"),
+          "spending_distributions.png")
+save_plot(ggplot(spending_long, aes(service, spending)) +
+            geom_boxplot(fill = "#A7C8B8") + theme_minimal() +
+            labs(title = "Variation in service spending", x = NULL, y = "Monthly payment ($)"),
+          "spending_boxplots.png")
+
+# 3. Compare K = 6 through 10 -------------------------------------------------
+# Use raw dollar spending, as selected in the presentation.
+# Higher-variance services consequently have more influence on clustering.
+# Reuse the SAME fitted objects for all comparisons (no separate refitting).
+set.seed(2271)
+k_values <- 6:10
+fits <- setNames(lapply(k_values, function(k) {
+  fit <- kmeans(spending_data, centers = k, nstart = 100, iter.max = 100)
+  if (!is.null(fit$ifault) && fit$ifault != 0) {
+    stop("K-means reported a convergence issue for K = ", k)
+  }
+  fit
+}), as.character(k_values))
+
+model_metrics <- function(fit) {
+  k <- nrow(fit$centers)
+  n <- sum(fit$size)
+  data.frame(K = k, SSE = fit$tot.withinss, SSB = fit$betweenss,
+             SST = fit$totss, R_squared = fit$betweenss / fit$totss,
+             Pseudo_F = (fit$betweenss / (k - 1)) /
+               (fit$tot.withinss / (n - k)))
+}
+comparison <- bind_rows(lapply(fits, model_metrics))
+print(comparison)
+save_table(comparison, "model_comparison.csv")
+for (metric in c("SSE", "Pseudo_F", "R_squared")) {
+  save_plot(ggplot(comparison, aes(x = K, y = .data[[metric]])) +
+              geom_line(color = "#245C48") + geom_point(size = 3, color = "#245C48") +
+              scale_x_continuous(breaks = k_values) + theme_minimal() +
+              labs(title = paste(metric, "by number of clusters"),
+                   x = "Number of clusters", y = metric),
+            paste0(tolower(metric), "_comparison.png"))
+}
+
+# 4. Profile the six-cluster solution -----------------------------------------
+# K = 6 follows the presentation, not an automatic claim about this new run.
+# Cluster numbers are arbitrary and may differ from the slides. Inspect the
+# means before assigning names such as Premium Users or Light Users.
+fit6 <- fits[["6"]]
+data$cluster <- factor(fit6$cluster, levels = 1:6)
+cluster_profile <- data.frame(
+  cluster = 1:6,
+  n = fit6$size,
+  pct = round(100 * fit6$size / sum(fit6$size), 2),
+  round(fit6$centers, 2),
+  RMSE = ifelse(fit6$size > 1,
+                sqrt(fit6$withinss / (length(spend_vars) * (fit6$size - 1))), NA_real_)
+)
+print(cluster_profile)
+save_table(cluster_profile, "six_cluster_spending.csv")
+save_table(data.frame(source_row = which(keep), cluster = fit6$cluster),
+           "cluster_assignments.csv")
+centers_long <- pivot_longer(cluster_profile, all_of(spend_vars),
+                            names_to = "service", values_to = "mean_spending")
+save_plot(ggplot(centers_long, aes(service, mean_spending, fill = service)) +
+            geom_col() + facet_wrap(~cluster) + theme_minimal() +
+            theme(legend.position = "none") +
+            labs(title = "Service spending by cluster", x = NULL, y = "Mean monthly payment ($)"),
+          "six_cluster_spending.png")
+
+# 5. Demographic profiles -----------------------------------------------------
+# Income may be coded bands: consult the codebook before interpreting its mean.
+# Children is recorded as 0/1 in this dataset and is plotted as a category.
+# Marital status is shown by its recorded codes, without guessing their meaning.
+for (v in demo_vars) {
+  if (is.numeric(data[[v]])) {
+    demographic_summary <- data %>% group_by(cluster) %>%
+      summarise(n = n(), mean = mean(.data[[v]]),
+                sd = sd(.data[[v]]), median = median(.data[[v]]), .groups = "drop")
+    save_table(demographic_summary, paste0(v, "_summary.csv"))
+  }
+  if (v %in% c("married", "children") || !is.numeric(data[[v]])) {
+    counts <- data %>% count(cluster, value = .data[[v]], name = "n") %>%
+      group_by(cluster) %>% mutate(pct = 100 * n / sum(n)) %>% ungroup()
+    save_table(counts, paste0(v, "_category_counts.csv"))
+    g <- ggplot(data, aes(x = factor(.data[[v]]))) + geom_bar(fill = "#245C48")
+  } else {
+    g <- ggplot(data, aes(x = .data[[v]])) +
+      geom_histogram(binwidth = if (v == "age") 5 else 1,
+                     fill = "#245C48", color = "white")
+  }
+  save_plot(g + facet_wrap(~cluster, scales = "free_y") + theme_minimal() +
+              labs(title = paste(v, "by cluster"), x = v, y = "Households"),
+            paste0(v, "_by_cluster.png"))
+}
+
+# 6. Compare the rerun with reported slide metrics ----------------------------
+# Reference values are used ONLY for comparison, never to force fitted results.
+actual <- model_metrics(fit6)
+reference_check <- data.frame(
+  metric = c("Households", "R_squared", "Pseudo_F"),
+  presentation = c(9780, 0.7424339, 5634.707),
+  reconstructed_run = c(nrow(data), actual$R_squared, actual$Pseudo_F)
+)
+print(reference_check)
+save_table(reference_check, "presentation_comparison.csv")
+# The presentation's offer ideas include premium bundles, internet upgrades,
+# family plans and essentials packages. These were recommendations, not tested
+# campaign outcomes. Assign recommendations only after reviewing the profiles.
+capture.output(sessionInfo(), file = file.path(output_dir, "session_info.txt"))
+message("Finished. Charts and tables saved to: ", normalizePath(output_dir))
+
