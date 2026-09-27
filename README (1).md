@@ -1,6 +1,6 @@
 # Data Science: K-Means Clustering to Identify Subscriber Segments in Cable Services
 
----
+
 This project examines how a cable TV multi-system operator (MSO) can use household spending patterns to develop more relevant subscriber offers. Using monthly payments for video, internet, and landline phone services, our group compared K-means solutions and selected six segments to guide differentiated bundles and cross-sell recommendations. Demographic profiles helped translate the statistical clusters into marketing opportunities.
 ---
 
